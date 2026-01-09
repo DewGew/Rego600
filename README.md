@@ -109,7 +109,7 @@ Example service file (`/etc/systemd/system/rego600.service`):
 
 ```ini
 [Unit]
-Description=REGO600 Monitor Script
+Description=REGO600 MQTT Bridge
 After=network.target
 
 [Service]
