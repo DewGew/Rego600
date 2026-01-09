@@ -1,6 +1,7 @@
 # REGO600 / REGO635 MQTT Bridge
 
-This project connects a **Rego 600 / Rego 635** heat pump controller to **Home Assistant** via **MQTT**. The script communicates with the heat pump over a serial connection and uses **Home Assistant MQTT Discovery** to automatically create sensors, binary sensors, buttons, and settings.
+This project connects a **Rego 600 / Rego 635** heat pump controller to **Home Assistant** via **MQTT**. The script communicates with the heat pump over a serial connection and uses **Home Assistant MQTT Discovery** to automatically create sensors, binary sensors, buttons, and settings. This setup uses custom-built hardware as described at [rago600.sourceforge.io](https://rago600.sourceforge.io/).
+
 
 ---
 
