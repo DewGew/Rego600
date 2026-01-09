@@ -1,54 +1,54 @@
 # REGO600 / REGO635 MQTT Bridge
 
-Detta projekt kopplar en **Rego 600 / Rego 635** värmepumpsstyrning till **Home Assistant** via **MQTT**.
-Scriptet kommunicerar med värmepumpen över seriell anslutning och använder **Home Assistant MQTT Discovery** för automatisk skapande av sensorer, binära sensorer, knappar och inställningar.
+This project connects a **Rego 600 / Rego 635** heat pump controller to **Home Assistant** via **MQTT**. The script communicates with the heat pump over a serial connection and uses **Home Assistant MQTT Discovery** to automatically create sensors, binary sensors, buttons, and settings.
 
 ---
 
-## Funktioner
+## Features
 
-* 📡 Seriell kommunikation med Rego 600/635
-* 🌡 Temperatur- och statusgivare (GT1–GT11 m.fl.)
-* 🔘 Binära sensorer (pumpar, kompressor, tillsatsvärme, larm)
-* 🖥 Realtidsavläsning av displayrader
-* 🎛 Styrning av knappar, ratt och inställningar från Home Assistant
-* ⚡ Beräkning av momentan effekt (W)
-* 🔋 Ackumulerad energi (kWh) med lagring till disk
-* 🧠 Dynamisk mappning beroende på pumpstorlek (PUMP_SIZE_KW)
-* 🔄 Stabil MQTT availability med heartbeat och Last Will
-* 🧰 Avsedd att köras som systemd-tjänst
+* 📡 Serial communication with Rego 600/635
+* 🌡 Temperature and status sensors (GT1–GT11, etc.)
+* 🔘 Binary sensors (pumps, compressor, auxiliary heat, alarm)
+* 🖥 Real-time display row reading
+* 🎛 Control buttons, wheel, and settings from Home Assistant
+* ⚡ Calculation of instantaneous power (W)
+* 🔋 Accumulated energy (kWh) with disk storage
+* 🧠 Dynamic mapping depending on pump size (PUMP_SIZE_KW)
+* 🔄 Stable MQTT availability with heartbeat and Last Will
+* 🧰 Designed to run as a systemd service
 
 ---
 
-## Filstruktur
+## File Structure
 
 ```
-rego600_MQTT.py      # Huvudscript
-rego600_config.py   # Användarspecifik konfiguration
-energy_total.json   # Sparad energidata (skapas automatiskt)
-README.md            # Dokumentation
+rego600/
+  rego600_MQTT.py      # Main script
+  rego600_config.py    # User-specific configuration
+  energy_total.json    # Saved energy data (automatically created)
+  README.md            # Documentation
 ```
 
 ---
 
-## Konfiguration (`rego600_config.py`)
+## Configuration (`rego600_config.py`)
 
-All användarspecifik konfiguration görs i `rego600_config.py`.
+All user-specific configuration is done in `rego600_config.py`.
 
-### Seriell port
+### Serial Port
 
 ```python
 SERIAL_PORT = '/dev/ttyUSB0'
 ```
 
-Exempel:
+Examples:
 
-* `/dev/ttyUSB0` – USB–RS485-adapter
+* `/dev/ttyUSB0` – USB–RS485 adapter
 * `/dev/ttyAMA0` – UART via GPIO (Raspberry Pi)
 
 ---
 
-### MQTT-inställningar
+### MQTT Settings
 
 ```python
 MQTT_BROKER = '192.168.1.24'
@@ -58,7 +58,7 @@ MQTT_USER = 'mqttuser'
 MQTT_PASSW = 'password'
 ```
 
-Alla entiteter publiceras under:
+All entities are published under:
 
 ```
 rego600/
@@ -66,45 +66,45 @@ rego600/
 
 ---
 
-### Pumpstorlek
+### Pump Size
 
 ```python
-PUMP_SIZE_KW = 5
+PUMP_SIZE_KW = 5 # Choose betwwen 4, 5, 7, 9 , 14 or 16kw
 ```
 
-Används för:
+Used for:
 
-* Effekt- och energiberäkning
-* Korrekt namn på tillsatsvärme
+* Power and energy calculations
+* Correct naming of auxiliary heat
 
-| PUMP_SIZE_KW | Tillsatsvärme |
-| -----------: | ------------- |
-|       ≤ 9 kW | 3 + 6 kW      |
-|   14 / 16 kW | 5 + 10 kW     |
+| PUMP_SIZE_KW | Auxiliary Heat |
+| -----------: | -------------- |
+|     ≤ 9 kW   |   3 + 6 kW     |
+|  14 / 16 kW  |   5 + 10 kW    |
 
 ---
 
 ## MQTT Availability
 
-Alla entiteter delar samma availability-topic:
+All entities share the same availability topic:
 
 ```
 rego600/availability
 ```
 
-Beteende:
+Behavior:
 
-* `online` publiceras vid start och regelbundet (heartbeat)
-* `offline` publiceras automatiskt via MQTT Last Will om scriptet dör
-* Vid reconnect återställs availability till `online`
+* `online` is published at startup and periodically (heartbeat)
+* `offline` is automatically published via MQTT Last Will if the script stops
+* Availability is reset to `online` after reconnect
 
-Detta säkerställer att Home Assistant endast visar *unavailable* vid verkligt fel.
+This ensures Home Assistant only shows *unavailable* on actual failure.
 
 ---
 
-## Installation som systemd-tjänst (Raspberry Pi)
+## Installation as a systemd Service (Raspberry Pi)
 
-Exempel på service-fil (`/etc/systemd/system/rego600.service`):
+Example service file (`/etc/systemd/system/rego600.service`):
 
 ```ini
 [Unit]
@@ -116,7 +116,7 @@ ExecStart=/usr/bin/python3 /home/pi/rego600/rego600_MQTT.py
 WorkingDirectory=/home/pi/rego600
 Restart=always
 RestartSec=5
-User=pi
+User=dietpi
 StandardOutput=journal
 StandardError=journal
 
@@ -124,7 +124,7 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-Aktivera tjänsten:
+Enable the service:
 
 ```bash
 sudo systemctl daemon-reload
@@ -134,59 +134,57 @@ sudo systemctl start rego600.service
 
 ---
 
-## Loggar & felsökning
+## Logs & Troubleshooting
 
-Visa status:
+Check status:
 
 ```bash
 sudo systemctl status rego600.service
 ```
 
-Följ loggar live:
+Follow logs live:
 
 ```bash
 sudo journalctl -u rego600.service -f
 ```
 
-Vanliga saker att leta efter:
+Common issues to look for:
 
-* `Serial error` → kommunikationsproblem
-* `MQTT disconnected` → nätverk/broker
-* Upprepade restarts → instabil seriell anslutning
+* `Serial error` → communication problem
+* `MQTT disconnected` → network/broker issue
+* Repeated restarts → unstable serial connection
 
 ---
 
-## Tips om värmekurva (IVT / Rego)
+## Heat Curve Tips (IVT / Rego)
 
-IVT:s reglerkurva är i grunden linjär, vilket ofta ger:
+IVT's heat curve is basically linear, which often results in:
 
-* För kallt vid milt väder
-* För varmt vid sträng kyla
+* Too cold during mild weather
+* Too warm during extreme cold
 
-Rekommenderad metod:
+Recommended method:
 
-1. Justera värmekurvan så att rätt innetemperatur nås vid ca **0 °C ute**
-2. Höj **Finjustering (meny 1.2)** med 1–2 °C om du vill ha varmare inne
-3. Knäck kurvan i **meny 1.7**:
+1. Adjust the heat curve so that the desired indoor temperature is reached at approximately **0 °C outside**
+2. Increase **Fine Adjustment (menu 1.2)** by 1–2 °C if warmer indoor temperature is desired
+3. Break the curve in **menu 1.7**:
 
    * +10 °C / +15 °C: +1 °C
    * −20 °C: −4 °C
-   * Justera övriga minusgrader linjärt
+   * Adjust other negative temperatures linearly
 
-Detta ger jämnare innetemperatur över hela året.
-
----
-
-## Version & vidareutveckling
-
-* Versionsnummer sätts i `rego600_MQTT.py`
-* Scriptet är anpassat för långtidstabil drift
-* Kan utökas med fler register, sensorer och styrningar vid behov
+This provides a more consistent indoor temperature year-round.
 
 ---
 
-## Licens / Användning
+## Version & Further Development
 
-Fritt att använda och anpassa för privat bruk.
-Ingen garanti lämnas – använd på egen risk.
+* Version number is set in `rego600_MQTT.py`
+* Script is designed for long-term stable operation
+* Can be extended with additional registers, sensors, and controls as needed
 
+---
+
+## License / Usage
+
+Free to use and modify for personal use. No warranty provided – use at your own risk.
