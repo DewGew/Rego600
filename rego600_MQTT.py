@@ -73,7 +73,7 @@ from rego600_config import (
     PUMP_SIZE_KW,
 )
 
-VERSION = "26.01"
+VERSION = "26.02"
 
 # --- Logging setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -586,14 +586,17 @@ def setup_mqtt(ser):
     client.subscribe(f"{MQTT_TOPIC_PREFIX}/set/#")
     
     publish_ha_discovery(client)
-
-    client.publish(availability_topic, "online", qos=1, retain=True)
     
     return client
     
 def on_mqtt_connect(client, userdata, flags, reason_code, properties):
     logging.info("MQTT connected")
-    client.publish(f"{MQTT_TOPIC_PREFIX}/availability", "online", retain=True)
+    client.publish(
+        f"{MQTT_TOPIC_PREFIX}/availability",
+        "online",
+        qos=1,
+        retain=True
+    )
 
 def on_mqtt_disconnect(client, userdata, rc):
     logging.warning(f"MQTT disconnected (rc={rc})")
@@ -776,7 +779,6 @@ def save_energy_total(value: float):
 def monitor_loop(interval: float = 15.0, display_interval: float = 1):
     ser = open_serial_connection()
     mqtt_client = setup_mqtt(ser)
-    mqtt_client.loop_start()
 
     last_full_update = 0.0
     last_display = {}
@@ -786,8 +788,6 @@ def monitor_loop(interval: float = 15.0, display_interval: float = 1):
     last_energy_update = time.time()
     last_energy_save = time.time()
     
-    last_heartbeat = 0
-    HEARTBEAT_INTERVAL = 30  # seconds
 
     def publish_map(map_obj, read_func, topic_prefix):
         for name, reg in map_obj.items():
@@ -913,19 +913,8 @@ def monitor_loop(interval: float = 15.0, display_interval: float = 1):
 
     try:
         while True:
-            now = time.time()
-            # --- MQTT heartbeat (keep availability online) ---
-            if now - last_heartbeat >= HEARTBEAT_INTERVAL:
-                try:
-                    mqtt_client.publish(
-                        f"{MQTT_TOPIC_PREFIX}/availability",
-                        "online",
-                        retain=True
-                    )
-                    last_heartbeat = now
-                except Exception as e:
-                    logging.warning(f"Heartbeat failed: {e}")
-
+            mqtt_client.loop(timeout=0.1)
+            now = time.time()            
             # --- Full update (sensors, LEDs, settings) ---
             if now - last_full_update >= interval:
                 publish_map(SENSOR_MAP, read_sensor, "sensor")
@@ -990,7 +979,6 @@ def monitor_loop(interval: float = 15.0, display_interval: float = 1):
             mqtt_client.publish(f"{MQTT_TOPIC_PREFIX}/availability", "offline", qos=1, retain=True)
         except Exception:
             pass
-        mqtt_client.loop_stop()
         ser.close()
         logging.info("Closed MQTT and serial connection.")
         save_energy_total(energy_total_kwh)
